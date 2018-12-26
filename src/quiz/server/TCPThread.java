@@ -32,11 +32,10 @@ public class TCPThread extends Thread {
             login = in.readLine();
             password = in.readLine();
             type = in.readLine();
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md5Password = md.digest(password.getBytes()).toString();
+
 
             insertQuery.setString(1, login);
-            insertQuery.setString(2, md5Password);
+            insertQuery.setString(2, password);
             insertQuery.setString(3, type);
 
             insertQuery.execute();

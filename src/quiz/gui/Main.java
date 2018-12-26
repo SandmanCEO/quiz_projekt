@@ -11,6 +11,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import quiz.client.TCP;
@@ -23,37 +24,49 @@ public class Main extends Application {
     Scene getPort, login, queryResult, registration;
     Button connectButton, loginButton;
     String result;
-    Text tittle;
+    Text tittleText, loginText, passwordText, typeText, invalidRegister, invalidLogin;
+
+    boolean validate(String text){
+        if(text == null || text.equals(""))
+            return false;
+        else
+            return true;
+    }
 
     void login(){
         TextField inputLogin = new TextField();
         TextField inputPassword = new TextField();
+        invalidLogin =  new Text();
+        invalidLogin.setFill(Color.RED);
         loginButton = new Button("Zaloguj");
         loginButton.setOnAction( e -> {
-            TCP.send(inputLogin.getText());
-            TCP.send(inputPassword.getText());
-            result = TCP.recive();
-            tittle.setText(result);
-            window.setScene(queryResult);
+            if(validate(inputLogin.getText()) && validate(inputPassword.getText())) {
+                TCP.send(inputLogin.getText());
+                TCP.send(inputPassword.getText());
+                result = TCP.recive();
+                tittleText.setText(result);
+                window.setScene(queryResult);
+            } else
+                invalidLogin.setText("Nieprawidłowe dane");
         });
         Button goToRegistration = new Button("Zarejestruj się!");
         goToRegistration.setOnAction( e -> window.setScene(registration));
 
         VBox getLoginLayout = new VBox(10);
         getLoginLayout.setPadding(new Insets(20, 20, 20, 20));
-        getLoginLayout.getChildren().addAll(inputLogin, inputPassword, loginButton, goToRegistration);
+        getLoginLayout.getChildren().addAll(inputLogin, inputPassword, invalidLogin, loginButton, goToRegistration);
 
         login = new Scene(getLoginLayout, 300, 250);
 
     }
 
     void queryResult(){
-        tittle = new Text();
+        tittleText = new Text();
 
 
         VBox getQueryResultLayout = new VBox(10);
         getQueryResultLayout.setPadding(new Insets(20, 20, 20, 20));
-        getQueryResultLayout.getChildren().add(tittle);
+        getQueryResultLayout.getChildren().add(tittleText);
 
         queryResult = new Scene(getQueryResultLayout, 300, 250);
 
@@ -77,9 +90,12 @@ public class Main extends Application {
     }
 
     void register(){
-        Text login =  new Text("Login");
-        Text password = new Text("Hasło");
-        Text type = new Text("Typ konta");
+        loginText =  new Text("Login");
+        passwordText = new Text("Hasło");
+        typeText = new Text("Typ konta");
+
+        invalidRegister = new Text();
+        invalidRegister.setFill(Color.RED);
 
         TextField loginInput = new TextField();
         TextField passwordInput = new TextField();
@@ -89,15 +105,20 @@ public class Main extends Application {
 
         Button registerButton = new Button("Zarejestruj");
         registerButton.setOnAction( e -> {
-            TCP.send("register");
-            TCP.send(loginInput.getText());
-            TCP.send(passwordInput.getText());
-            TCP.send(chooseType.getValue());
+            if(validate(loginInput.getText()) && validate(passwordInput.getText()) && validate(chooseType.getValue())) {
+                TCP.send("register");
+                TCP.send(loginInput.getText());
+                TCP.send(passwordInput.getText());
+                TCP.send(chooseType.getValue());
+                window.setScene(login);
+            } else{
+                invalidRegister.setText("Nieprawidłowe dane");
+            }
         });
 
         VBox getRegisterLayout = new VBox(10);
         getRegisterLayout.setPadding(new Insets(20, 20, 20, 20));
-        getRegisterLayout.getChildren().addAll(login, loginInput, password, passwordInput, type, chooseType, registerButton);
+        getRegisterLayout.getChildren().addAll(loginText, loginInput, passwordText, passwordInput, typeText, chooseType, invalidRegister, registerButton);
 
         registration = new Scene(getRegisterLayout, 300, 400);
 

@@ -2,6 +2,9 @@ package quiz.server;
 
 import java.io.IOException;
 import java.net.*;
+import java.sql.ResultSet;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MainServer {
     public static void main(String[] args){
@@ -13,7 +16,10 @@ public class MainServer {
             while(true){
                 Socket socket = serverSocket.accept();
 
-                new TCPThread(socket).start();
+                SharedResource sharedResource = new SharedResource();
+
+                new TCPThread(socket, sharedResource).start();
+                new DatabaseThread(sharedResource).start();
             }
         } catch (Exception e){
             System.err.println(e);

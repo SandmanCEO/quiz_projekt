@@ -1,5 +1,7 @@
 package quiz.server;
 
+import javafx.scene.control.ChoiceBox;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -9,36 +11,35 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.security.MessageDigest;
+import java.util.concurrent.locks.Lock;
 
 public class TCPThread extends Thread {
     Socket socket;
-    String login, password;
+    String instruction;
+    SharedResource sharedResource;
     BufferedReader in;
     PrintWriter outStream;
-    Statement statement;
 
-    public TCPThread(Socket socket){
+    public TCPThread(Socket socket, SharedResource sharedResource){
         super();
         this.socket = socket;
+        this.sharedResource = sharedResource;
     }
 
     void register(){
-        String login, password, type, query, md5Password;
-        query = "INSERT INTO user(login, password , type) VALUES( ?, ?, ?)";
+        String login, password, type;
 
         try {
-            PreparedStatement insertQuery = DatabaseConnection.connection.prepareStatement(query);
-
             login = in.readLine();
             password = in.readLine();
             type = in.readLine();
 
+            sharedResource.setInstruction("INSERT INTO user(login, password , type) VALUES( \"" + login + "\", \"" + password +
+                    "\", \"" + type + "\");");
 
-            insertQuery.setString(1, login);
-            insertQuery.setString(2, password);
-            insertQuery.setString(3, type);
+            sleep(100);
+            sharedResource.setLock();
 
-            insertQuery.execute();
         } catch (Exception e){
             System.err.println(e);
         }
@@ -46,24 +47,84 @@ public class TCPThread extends Thread {
 
     }
 
-    public void run(){
-        if(DatabaseConnection.connectToDatabase())
-            try{
-                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                outStream = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+    boolean login(){
+        String login, password;
+        try{
+            login = in.readLine();
+            password = in.readLine();
 
-                statement = DatabaseConnection.connection.createStatement();
+            sharedResource.setInstruction("SELECT COUNT(*) AS no FROM user WHERE login = \"" + login + "\" AND password = \"" +
+                    password + "\";");
 
-                do{
-                    if("register".equals(in.readLine())){
-                        register();
+            sleep(100);
+
+                ResultSet result = sharedResource.readResultSet();
+                result.next();
+
+                if (result.getInt("no") == 1)
+                    return true;
+                else
+                    return false;
+
+        } catch (Exception e){
+            System.err.println(e);
+        }
+        return false;
+    }
+
+    public void getQueries(){
+        try{
+            sharedResource.setInstruction("SELECT * FROM query;");
+            String temporary = "";
+            sleep(100);
+                ResultSet result = sharedResource.readResultSet();
+
+               while (result.next()) {
+                   outStream.println(result.getString("tittle"));
+                   outStream.flush();
+                }
+                outStream.println("end");
+                outStream.flush();
+
+        } catch (Exception e){
+            System.err.println(e);
+        }
+    }
+
+    public void run() {
+        sharedResource.setLock();
+
+        try {
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            outStream = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+
+            do {
+                instruction = in.readLine();
+
+                if ("register".equals(instruction)) {
+                    register();
+                } else if ("login".equals(instruction)) {
+                    if (login()) {
+                        outStream.println("logged");
+                        outStream.flush();
+                        System.out.println("logged");
+                    } else {
+                        outStream.println("invalidLogin");
+                        outStream.flush();
+                        System.out.println("invalid");
                     }
-                } while("exit".equals(in.readLine()));
+                } else if("getQueries".equals(instruction)){
+                    getQueries();
+                }
+            } while (!"exit".equals(instruction));
 
-                socket.close();
+            sharedResource.setInstruction("exit");
 
-            } catch (Exception e){
-                System.err.println(e);
-            }
+            socket.close();
+
+        } catch (Exception e) {
+            System.err.println(e);
+        }
+        System.out.println("Closing thread TCP");
     }
 }

@@ -1,5 +1,7 @@
 package quiz.client;
 
+import javafx.scene.control.ChoiceBox;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -42,5 +44,24 @@ public class TCP {
             System.err.println(e);
         }
         return value;
+    }
+
+    public static void getAvailableQueries(ChoiceBox<String> list){
+        String temporary = "";
+        try{
+            out.println("getQueries");
+            out.flush();
+
+            while(!("end".equals(temporary))){
+                temporary = in.readLine();
+                if(!temporary.equals("end")) {
+                    list.getItems().add(temporary);
+                    list.setValue(temporary);
+                }
+            }
+
+        } catch (Exception e){
+            System.err.println(e);
+        }
     }
 }

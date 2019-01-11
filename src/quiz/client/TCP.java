@@ -1,6 +1,7 @@
 package quiz.client;
 
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.text.Text;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -46,10 +47,11 @@ public class TCP {
         return value;
     }
 
-    public static void getAvailableQueries(ChoiceBox<String> list){
+    public static void getAvailableQueries(ChoiceBox<String> list, String sessionLogin){
         String temporary = "";
         try{
             out.println("getQueries");
+            out.println(sessionLogin);
             out.flush();
 
             while(!("end".equals(temporary))){
@@ -63,5 +65,55 @@ public class TCP {
         } catch (Exception e){
             System.err.println(e);
         }
+    }
+
+    public static QueryHandler handler(String userLogin, String tittle){
+        int queryId, noOfQuestions;
+        queryId = noOfQuestions = 0;
+        try {
+            out.println("getNoOfQuestionsAndQueryId");
+            out.println(tittle);
+            out.flush();
+
+            queryId = Integer.parseInt(in.readLine());
+            noOfQuestions = Integer.parseInt(in.readLine());
+
+
+        } catch (Exception e){
+            System.err.println(e);
+        }
+        return new QueryHandler(userLogin, queryId, tittle, noOfQuestions);
+    }
+
+    public static void prepareQuestion(Text questionText, ChoiceBox<String> answers, String tittle, int questionNo){
+        String temporary = "";
+        answers.getItems().clear();
+        try {
+            out.println("getQuestionAndAnswers");
+            out.println(tittle);
+            out.println(questionNo);
+            out.flush();
+            //System.out.println(temporary);
+            questionText.setText(in.readLine());
+
+            while(!("end".equals(temporary))){
+                temporary = in.readLine();
+                System.out.println(temporary);
+                if(!temporary.equals("end")){
+                    answers.getItems().add(temporary);
+                }
+            }
+        } catch (Exception e){
+            System.err.println(e);
+        }
+    }
+
+    public static void sendAnswer(String userLogin, int queryId, int questionNumber, String answerText){
+        out.println("saveAnswer");
+        out.println(userLogin);
+        out.println(queryId);
+        out.println(questionNumber);
+        out.println(answerText);
+        out.flush();
     }
 }

@@ -1,5 +1,11 @@
 package quiz.server;
 
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.concurrent.locks.Lock;
@@ -25,6 +31,7 @@ public class DatabaseThread extends Thread {
             }
             do{
                     instruction = sharedResource.readInstruction();
+                    System.out.println(instruction);
                     try {
                         if (instruction.startsWith("INSERT")) {
                             statement.executeUpdate(instruction);

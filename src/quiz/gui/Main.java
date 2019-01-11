@@ -14,6 +14,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import quiz.client.QueryHandler;
 import quiz.client.TCP;
 
 import java.util.Stack;
@@ -21,9 +22,12 @@ import java.util.Stack;
 public class Main extends Application {
 
     Stage window;
-    Scene getPort, login, showAvailableQueries, registration;
-    String result;
-    ChoiceBox<String> chooseQuery;
+    Scene getPort, login, showAvailableQueries, registration, showQuestion;
+    String result, userLogin;
+    ChoiceBox<String> chooseQuery, chooseStat, chooseAnswer;
+    String sessionLogin, sessionPassword, sessionType;
+    Text questionText;
+    QueryHandler handler;
 
     boolean validate(String text){
         if(text == null || text.equals(""))
@@ -50,16 +54,21 @@ public class Main extends Application {
         loginButton.setOnAction( e -> {
             if(validate(inputLogin.getText()) && validate(inputPassword.getText())) {
                 TCP.send("login");
-                TCP.send(inputLogin.getText());
-                TCP.send(inputPassword.getText());
+                sessionLogin =  inputLogin.getText();
+                sessionPassword = inputPassword.getText();
+                TCP.send(sessionLogin);
+                TCP.send(sessionPassword);
                 result = TCP.recive();
+                System.out.println(result);
                 if(result.equals("logged")){
+                    System.out.println("wchodze w widok ankietowanego");
+                    userLogin = inputLogin.getText();
                     window.setScene(showAvailableQueries);
-                } else{
+                }else if(result.equals("invalidLogin")){
                     invalidLogin.setText("Blędny login lub hasło");
                 }
-            } else
-                invalidLogin.setText("Nieprawidłowe dane");
+                } else
+                    invalidLogin.setText("Nieprawidłowe dane");
         });
         Button goToRegistration = new Button("Zarejestruj się!");
         goToRegistration.setOnAction( e -> window.setScene(registration));
@@ -72,9 +81,11 @@ public class Main extends Application {
 
     }
 
+
     void showAvailableQueries(){
         Button exit = new Button("Wyjście");
         Button refresh = new Button("Odśwież");
+        Button pickQuery = new Button("Wybierz ankietę");
         Text queries = new Text("Dostępne ankiety:");
         chooseQuery = new ChoiceBox<>();
         exit.setOnAction( e -> {
@@ -82,15 +93,44 @@ public class Main extends Application {
             window.close();
         } );
         refresh.setOnAction( e -> {
-            TCP.getAvailableQueries(chooseQuery);
+            TCP.getAvailableQueries(chooseQuery, sessionLogin);
             window.setScene(showAvailableQueries);
+        });
+        pickQuery.setOnAction( e -> {
+            handler =  TCP.handler(userLogin, chooseQuery.getValue());
+            TCP.prepareQuestion(questionText, chooseAnswer, handler.getQueryTittle(), handler.getActualQuestion());
+            window.setScene(showQuestion);
         });
 
         VBox getShowAvailableQueries = new VBox(10);
         getShowAvailableQueries.setPadding(new Insets(20, 20, 20, 20));
-        getShowAvailableQueries.getChildren().addAll(refresh, queries, chooseQuery, exit);
+        getShowAvailableQueries.getChildren().addAll(refresh, queries, chooseQuery, pickQuery, exit);
 
         showAvailableQueries = new Scene(getShowAvailableQueries, 600, 400);
+    }
+
+
+    void showQuestion(){
+
+        questionText = new Text();
+        chooseAnswer = new ChoiceBox<>();
+
+        Button sendAnswer = new Button("Zatwierdź");
+        sendAnswer.setOnAction( e -> {
+            TCP.sendAnswer(userLogin, handler.getQueryId(), handler.getActualQuestion(), chooseAnswer.getValue());
+
+            if(handler.getActualQuestion() < handler.getNoOfQuestions()) {
+                handler.setActualQuestion(handler.getActualQuestion() + 1);
+                TCP.prepareQuestion(questionText, chooseAnswer, handler.getQueryTittle(), handler.getActualQuestion());
+                window.setScene(showQuestion);
+            }
+        });
+
+        VBox getQuestionLayout = new VBox(10);
+        getQuestionLayout.setPadding(new Insets(20, 20, 20, 20));
+        getQuestionLayout.getChildren().addAll(questionText, chooseAnswer, sendAnswer);
+
+        showQuestion = new Scene(getQuestionLayout, 600, 400);
     }
 
     void getPort(){
@@ -167,9 +207,11 @@ public class Main extends Application {
 
 
 
+
         getPort();
         login();
         showAvailableQueries();
+        showQuestion();
         register();
 
         window.setScene(getPort);

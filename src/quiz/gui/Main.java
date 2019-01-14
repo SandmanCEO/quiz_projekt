@@ -63,6 +63,7 @@ public class Main extends Application {
                 if(result.equals("logged")){
                     System.out.println("wchodze w widok ankietowanego");
                     userLogin = inputLogin.getText();
+                    TCP.getAvailableQueries(chooseQuery, sessionLogin);
                     window.setScene(showAvailableQueries);
                 }else if(result.equals("invalidLogin")){
                     invalidLogin.setText("Blędny login lub hasło");
@@ -114,21 +115,32 @@ public class Main extends Application {
 
         questionText = new Text();
         chooseAnswer = new ChoiceBox<>();
+        Text invalidAnswer = new Text();
+        invalidAnswer.setFill(Color.RED);
 
         Button sendAnswer = new Button("Zatwierdź");
         sendAnswer.setOnAction( e -> {
-            TCP.sendAnswer(userLogin, handler.getQueryId(), handler.getActualQuestion(), chooseAnswer.getValue());
+            if(validate(chooseAnswer.getValue())) {
+                sendAnswer.setDisable(false);
+                invalidAnswer.setText("");
+                TCP.sendAnswer(userLogin, handler.getQueryId(), handler.getActualQuestion(), chooseAnswer.getValue());
 
-            if(handler.getActualQuestion() < handler.getNoOfQuestions()) {
-                handler.setActualQuestion(handler.getActualQuestion() + 1);
-                TCP.prepareQuestion(questionText, chooseAnswer, handler.getQueryTittle(), handler.getActualQuestion());
-                window.setScene(showQuestion);
+                if (handler.getActualQuestion() < handler.getNoOfQuestions()) {
+                    handler.setActualQuestion(handler.getActualQuestion() + 1);
+                    TCP.prepareQuestion(questionText, chooseAnswer, handler.getQueryTittle(), handler.getActualQuestion());
+                    window.setScene(showQuestion);
+                }else{
+                    TCP.setQueryAsDone(sessionLogin, handler.getQueryId());
+                    window.setScene(showAvailableQueries);
+                }
+            }else{
+                invalidAnswer.setText("Wybierz odpowiedź!");
             }
         });
 
         VBox getQuestionLayout = new VBox(10);
         getQuestionLayout.setPadding(new Insets(20, 20, 20, 20));
-        getQuestionLayout.getChildren().addAll(questionText, chooseAnswer, sendAnswer);
+        getQuestionLayout.getChildren().addAll(questionText, chooseAnswer, invalidAnswer, sendAnswer);
 
         showQuestion = new Scene(getQuestionLayout, 600, 400);
     }
@@ -163,7 +175,6 @@ public class Main extends Application {
         } );
         Text loginText =  new Text("Login");
         Text passwordText = new Text("Hasło");
-        Text typeText = new Text("Typ konta");
 
         Text invalidRegister = new Text();
         invalidRegister.setFill(Color.RED);
@@ -173,16 +184,14 @@ public class Main extends Application {
 
         Button goBack = new Button("Powrót");
 
-        ChoiceBox<String> chooseType = new ChoiceBox<>();
-        chooseType.getItems().addAll("Ankieter", "Ankietowany");
+
 
         Button registerButton = new Button("Zarejestruj");
         registerButton.setOnAction( e -> {
-            if(validate(loginInput.getText()) && validate(passwordInput.getText()) && validate(chooseType.getValue())) {
+            if((validate(loginInput.getText()) && validate(passwordInput.getText()))) {
                 TCP.send("register");
                 TCP.send(loginInput.getText());
                 TCP.send(passwordInput.getText());
-                TCP.send(chooseType.getValue());
                 window.setScene(login);
             } else{
                 invalidRegister.setText("Nieprawidłowe dane");
@@ -193,7 +202,7 @@ public class Main extends Application {
 
         VBox getRegisterLayout = new VBox(10);
         getRegisterLayout.setPadding(new Insets(20, 20, 20, 20));
-        getRegisterLayout.getChildren().addAll(loginText, loginInput, passwordText, passwordInput, typeText, chooseType,
+        getRegisterLayout.getChildren().addAll(loginText, loginInput, passwordText, passwordInput,
                 invalidRegister, registerButton, goBack);
 
         registration = new Scene(getRegisterLayout, 600, 400);

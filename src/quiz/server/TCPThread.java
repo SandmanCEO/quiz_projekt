@@ -32,10 +32,10 @@ public class TCPThread extends Thread {
         try {
             login = in.readLine();
             password = in.readLine();
-            type = in.readLine();
 
-            sharedResource.setInstruction("INSERT INTO user(login, password , type) VALUES( \"" + login + "\", \"" + password +
-                    "\", \"" + type + "\");");
+
+            sharedResource.setInstruction("INSERT INTO user(login, password ) VALUES( \"" + login + "\", \"" + password +
+                    "\");");
 
             sleep(100);
             sharedResource.setLock();
@@ -180,6 +180,23 @@ public class TCPThread extends Thread {
         }
     }
 
+    public void setQueryAsDone(){
+        String userLogin = "";
+        int queryId = 0;
+        try{
+
+            userLogin = in.readLine();
+            queryId = Integer.parseInt(in.readLine());
+            sleep(500);
+            sharedResource.setInstruction("INSERT INTO user_query(user_login, query_id) values(\"" + userLogin +
+                    "\", " + queryId + ");");
+            sleep(500);
+            sharedResource.setLock();
+        }catch (Exception e){
+            System.err.println(e);
+        }
+    }
+
     public void run() {
         sharedResource.setLock();
 
@@ -205,6 +222,8 @@ public class TCPThread extends Thread {
                     getQuestionAndAnswers();
                 } else if("saveAnswer".equals(instruction)){
                     saveAnswer();
+                } else if("setQueryAsDone".equals(instruction)){
+                    setQueryAsDone();
                 }
             } while (!"exit".equals(instruction));
 

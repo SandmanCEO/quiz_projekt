@@ -49,6 +49,7 @@ public class TCP {
 
     public static void getAvailableQueries(ChoiceBox<String> list, String sessionLogin){
         String temporary = "";
+        list.getItems().clear();
         try{
             out.println("getQueries");
             out.println(sessionLogin);
@@ -115,5 +116,11 @@ public class TCP {
         out.println(questionNumber);
         out.println(answerText);
         out.flush();
+    }
+
+    public static void setQueryAsDone(String userLogin, int queryId){
+        out.println("setQueryAsDone");
+        out.println(userLogin);
+        out.println(queryId);
     }
 }
